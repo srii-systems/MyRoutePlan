@@ -1,7 +1,6 @@
 package com.srii_systems.myrouteplan;
 
 import android.content.res.Configuration;
-import android.location.Address;
 import android.location.Geocoder;
 import android.os.Bundle;
 import android.support.v4.widget.DrawerLayout;
@@ -19,7 +18,16 @@ import android.widget.Toast;
 
 import com.srii_systems.myrouteplan.model.RoutePlan;
 
-import java.util.List;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Locale;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -34,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
 
     private EditText fromEditText;
     private EditText toEditText;
-
+    private String requestString = "http://api.reittiopas.fi/hsl/1_2_1/?request=route&userhash=b43b1faa155034ea77333e303d273f4696c80e69101f&format=json";
     final RoutePlan routePlan = new RoutePlan();
 
     @Override
@@ -96,38 +104,97 @@ public class MainActivity extends AppCompatActivity {
                 routePlan.setmFromEditText(fromEditText.getText().toString());
                 routePlan.setmToEditText(toEditText.getText().toString());
                 getGeocode();
+               makeRouteRequestUri();
             }
         });
     }
     void getGeocode() {
         String locationFrom = routePlan.getmFromEditText();
         String locationTo = routePlan.getmToEditText();
-        Double latitudeFrom = Double.valueOf(0);
+        /*Double latitudeFrom = Double.valueOf(0);
         Double longitudeFrom = Double.valueOf(0);
         Double latitudeTo = Double.valueOf(0);
-        Double longitudeTo = Double.valueOf(0);
+        Double longitudeTo = Double.valueOf(0);*/
 
-        Geocoder gc = new Geocoder(this);
+        //Geocoder gc = new Geocoder(this);
+        Geocoder gc = new Geocoder(getApplicationContext(), Locale.ENGLISH);
+        boolean isgcpresent = gc.isPresent();
         try {
-            List<Address> listFrom = gc.getFromLocationName(locationFrom, 1);
+           /* List<Address> listFrom = gc.getFromLocationName(locationFrom, 1);
             List<Address> listTo = gc.getFromLocationName(locationTo, 1);
-            latitudeFrom = listFrom.get(0).getLatitude();
+
+            routePlan.setFromLatitude(listFrom.get(0).getLatitude());
+            routePlan.setFromLongitude(listFrom.get(0).getLongitude());
+            routePlan.setToLatitude(listTo.get(0).getLatitude());
+            routePlan.setToLongitude(listTo.get(0).getLongitude());*/
+
+            /*latitudeFrom = listFrom.get(0).getLatitude();
             longitudeFrom = listFrom.get(0).getLongitude();
             latitudeTo = listTo.get(0).getLatitude();
-            longitudeTo = listTo.get(0).getLongitude();
+            longitudeTo = listTo.get(0).getLongitude();*/
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        Toast.makeText(getBaseContext(), latitudeFrom / 1E6 + "," +
-                longitudeFrom / 1E6, Toast.LENGTH_LONG).show();
+       /* Toast.makeText(getBaseContext(), routePlan.getFromLatitude() + "," +
+                routePlan.getFromLongitude() , Toast.LENGTH_LONG).show();
 
-        Toast.makeText(getBaseContext(), latitudeTo / 1E6 + "," +
-                longitudeTo / 1E6, Toast.LENGTH_LONG).show();
-
+        Toast.makeText(getBaseContext(), routePlan.getToLatitude()+ "," +
+                routePlan.getToLongitude() , Toast.LENGTH_LONG).show();*/
+        //epsg_in=4326
     }
 
+  void makeRouteRequestUri()
+  {
 
+     // String requestUrl = requestString + "&from="+ routePlan.getFromLongitude()+","+ routePlan.getFromLatitude()+
+     //         "&to="+ routePlan.getToLongitude()+","+ routePlan.getToLatitude();
+
+    String requestUrl = "http://api.reittiopas.fi/hsl/1_2_1/?request=route&userhash=b43b1faa155034ea77333e303d273f4696c80e69101f&format=json&from=2548196,6678528&to=2549062,6678638";
+      HttpURLConnection httpUrlcon;
+      String url = null;
+      String data = null;
+      String result = null;
+      try{
+//Connect
+          httpUrlcon = (HttpURLConnection) ((new URL(requestUrl).openConnection()));
+          httpUrlcon.setDoOutput(true);
+          httpUrlcon.setRequestProperty("Content-Type", "application/json");
+          httpUrlcon.setRequestProperty("Accept", "application/json");
+          httpUrlcon.setRequestMethod("GET");
+          httpUrlcon.connect();
+
+
+
+//Write
+          OutputStream os = httpUrlcon.getOutputStream();
+          BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+          writer.write(data);
+          writer.close();
+          os.close();
+
+//Read
+          BufferedReader br = new BufferedReader(new InputStreamReader(httpUrlcon.getInputStream(),"UTF-8"));
+
+          String line = null;
+          StringBuilder sb = new StringBuilder();
+
+          while ((line = br.readLine()) != null) {
+              sb.append(line);
+          }
+
+          br.close();
+          result = sb.toString();
+
+      } catch (UnsupportedEncodingException e) {
+          e.printStackTrace();
+      } catch (IOException e) {
+          e.printStackTrace();
+      }
+
+      Toast.makeText(getBaseContext(), result, Toast.LENGTH_LONG).show();
+
+  }
     /* The click listner for ListView in the navigation drawer */
     private class DrawerItemClickListener implements ListView.OnItemClickListener {
         @Override
