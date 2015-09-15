@@ -1,7 +1,11 @@
 package com.srii_systems.myrouteplan;
 
+import android.content.Context;
 import android.content.res.Configuration;
 import android.location.Geocoder;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -18,12 +22,10 @@ import android.widget.Toast;
 
 import com.srii_systems.myrouteplan.model.RoutePlan;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -42,7 +44,9 @@ public class MainActivity extends AppCompatActivity {
 
     private EditText fromEditText;
     private EditText toEditText;
-    private String requestString = "http://api.reittiopas.fi/hsl/1_2_1/?request=route&userhash=b43b1faa155034ea77333e303d273f4696c80e69101f&format=json";
+   // private String requestString = "http://api.reittiopas.fi/hsl/1_2_1/?request=route&userhash=b43b1faa155034ea77333e303d273f4696c80e69101f&format=json";
+    private String requestString = "http://api.reittiopas.fi/hsl/1_2_1/?request=route&userhash=12b3f24ee7d3175f8e2358f736aa76167723f9ce6ede&format=json&from=2548196,6678528&to=2549062,6678638";
+
     final RoutePlan routePlan = new RoutePlan();
 
     @Override
@@ -150,51 +154,86 @@ public class MainActivity extends AppCompatActivity {
      // String requestUrl = requestString + "&from="+ routePlan.getFromLongitude()+","+ routePlan.getFromLatitude()+
      //         "&to="+ routePlan.getToLongitude()+","+ routePlan.getToLatitude();
 
-    String requestUrl = "http://api.reittiopas.fi/hsl/1_2_1/?request=route&userhash=b43b1faa155034ea77333e303d273f4696c80e69101f&format=json&from=2548196,6678528&to=2549062,6678638";
-      HttpURLConnection httpUrlcon;
-      String url = null;
-      String data = null;
-      String result = null;
-      try{
-//Connect
-          httpUrlcon = (HttpURLConnection) ((new URL(requestUrl).openConnection()));
-          httpUrlcon.setDoOutput(true);
-          httpUrlcon.setRequestProperty("Content-Type", "application/json");
-          httpUrlcon.setRequestProperty("Accept", "application/json");
-          httpUrlcon.setRequestMethod("GET");
-          httpUrlcon.connect();
-
-
-
-//Write
-          OutputStream os = httpUrlcon.getOutputStream();
-          BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
-          writer.write(data);
-          writer.close();
-          os.close();
-
-//Read
-          BufferedReader br = new BufferedReader(new InputStreamReader(httpUrlcon.getInputStream(),"UTF-8"));
-
-          String line = null;
-          StringBuilder sb = new StringBuilder();
-
-          while ((line = br.readLine()) != null) {
-              sb.append(line);
-          }
-
-          br.close();
-          result = sb.toString();
-
-      } catch (UnsupportedEncodingException e) {
-          e.printStackTrace();
-      } catch (IOException e) {
-          e.printStackTrace();
+   // String requestUrl = "http://api.reittiopas.fi/hsl/1_2_1/?request=route&userhash=b43b1faa155034ea77333e303d273f4696c80e69101f&format=json&from=2548196,6678528&to=2549062,6678638";
+      //HttpURLConnection httpUrlcon = null;
+     // String url = null;
+      ConnectivityManager connMgr = (ConnectivityManager)
+              getSystemService(Context.CONNECTIVITY_SERVICE);
+      NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+      if (networkInfo != null && networkInfo.isConnected()) {
+          new RouteRequestTask().execute(requestString);
+      } else {
+          //textView.setText("No network connection available.");
       }
 
-      Toast.makeText(getBaseContext(), result, Toast.LENGTH_LONG).show();
-
   }
+    private class RouteRequestTask extends AsyncTask<String, Void, String> {
+        @Override
+
+        protected String doInBackground(String... urls) {
+
+     //       String requestUrl = "http://api.reittiopas.fi/hsl/1_2_1/?request=route&userhash=b43b1faa155034ea77333e303d273f4696c80e69101f&format=json&from=2548196,6678528&to=2549062,6678638";
+
+            String data = null;
+            String result = null;
+            String contentAsString = null;
+            int status = 0;
+            // web page content.
+            int len = 500;
+            InputStream is = null;
+            // params comes from the execute() call: params[0] is the url.
+            try {
+                //Connect
+                URL url = new URL(requestString);
+                HttpURLConnection httpCon = (HttpURLConnection) url.openConnection();
+                // httpUrlcon = (HttpURLConnection) ((new URL("http://api.reittiopas.fi/hsl/1_2_1/?request=route&userhash=b43b1faa155034ea77333e303d273f4696c80e69101f&format=json&from=2548196,6678528&to=2549062,6678638").openConnection()));
+                httpCon.setReadTimeout(10000 /* milliseconds */);
+                httpCon.setConnectTimeout(15000 /* milliseconds */);
+                httpCon.setRequestMethod("GET");
+                httpCon.setDoInput(true);
+
+
+                httpCon.connect();
+                status = httpCon.getResponseCode();
+
+                is = httpCon.getInputStream();
+
+                // Convert the InputStream into a string
+                contentAsString = readIt(is, len);
+                return contentAsString;
+                //System.out.println(contentAsString);
+
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }catch (IOException e) {
+                Toast.makeText(getBaseContext(), status, Toast.LENGTH_LONG).show();
+                e.printStackTrace();
+                return "Unable to retrieve web page. URL may be invalid.";
+
+            }finally {
+                if (is != null) {
+                    //is.close();
+                }
+            }
+           // Toast.makeText(getBaseContext(), contentAsString, Toast.LENGTH_LONG).show();
+
+            return contentAsString;
+        }
+        // onPostExecute displays the results of the AsyncTask.
+        @Override
+        protected void onPostExecute(String result) {
+            //textView.setText(result);
+        }
+
+        // Reads an InputStream and converts it to a String.
+        public String readIt(InputStream stream, int len) throws IOException, UnsupportedEncodingException {
+            Reader reader = null;
+            reader = new InputStreamReader(stream, "UTF-8");
+            char[] buffer = new char[len];
+            reader.read(buffer);
+            return new String(buffer);
+        }
+    }
     /* The click listner for ListView in the navigation drawer */
     private class DrawerItemClickListener implements ListView.OnItemClickListener {
         @Override
