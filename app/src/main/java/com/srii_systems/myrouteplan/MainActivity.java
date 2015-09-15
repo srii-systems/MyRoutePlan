@@ -21,10 +21,6 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import com.srii_systems.myrouteplan.model.RoutePlan;
-import com.srii_systems.myrouteplan.model.RoutePlanResponses;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,7 +29,6 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Locale;
 
 
@@ -52,7 +47,6 @@ public class MainActivity extends AppCompatActivity {
    // private String requestString = "http://api.reittiopas.fi/hsl/1_2_1/?request=route&userhash=b43b1faa155034ea77333e303d273f4696c80e69101f&format=json";
     private String requestString = "http://api.reittiopas.fi/hsl/1_2_1/?request=route&userhash=12b3f24ee7d3175f8e2358f736aa76167723f9ce6ede&format=json&from=2548196,6678528&to=2549062,6678638";
 
-    String contentAsString = null;
     final RoutePlan routePlan = new RoutePlan();
 
     @Override
@@ -182,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
 
             String data = null;
             String result = null;
-            //String contentAsString = null;
+            String contentAsString = null;
             int status = 0;
             // web page content.
             int len = 500;
@@ -205,13 +199,7 @@ public class MainActivity extends AppCompatActivity {
                 is = httpCon.getInputStream();
 
                 // Convert the InputStream into a string
-
                 contentAsString = readIt(is, len);
-
-                JSONObject jsono = new JSONObject();
-
-                parseJsonRouteResponse();
-
                 return contentAsString;
                 //System.out.println(contentAsString);
 
@@ -231,7 +219,6 @@ public class MainActivity extends AppCompatActivity {
 
             return contentAsString;
         }
-
         // onPostExecute displays the results of the AsyncTask.
         @Override
         protected void onPostExecute(String result) {
@@ -245,26 +232,6 @@ public class MainActivity extends AppCompatActivity {
             char[] buffer = new char[len];
             reader.read(buffer);
             return new String(buffer);
-        }
-
-        void parseJsonRouteResponse(){
-
-            ArrayList<RoutePlanResponses> routePlanResponsesList;
-            routePlanResponsesList = new ArrayList<RoutePlanResponses>();
-
-            JSONObject jsono = new JSONObject(contentAsString);
-            JSONArray jarray = jsono.getJSONArray("actors");
-
-            for (int i = 0; i < jarray.length(); i++) {
-                JSONObject object = jarray.getJSONObject(i);
-
-                RoutePlanResponses routePlanResponses = new RoutePlanResponses();
-
-                routePlanResponses.setmDepartureTime(object.getString("depTime"));
-                routePlanResponses.setmArrivalTime(object.getString("arrTime"));
-                routePlanResponses.setmTransportationType(object.getString("type"));
-
-                routePlanResponsesList.add(routePlanResponses);
         }
     }
     /* The click listner for ListView in the navigation drawer */
